@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+
 import time
 import os
 import sys
@@ -48,7 +50,7 @@ class Timer():
                     sys.stdout.write("\n Time's up !")
                     sys.stdout.flush()
 
-            except KeyboardInterrupt, e:
+            except KeyboardInterrupt as e:
                 break
         
 if __name__ == "__main__":
