@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 
 import time
@@ -17,17 +17,47 @@ def cli():
 @click.option("--note", default=None)
 def countdown(time, note):
     timer = Timer(time)
-    if note:
-        timer.note(note)
     timer.countdown()
+    if note and timer.write_note:
+        timer.note(note)
 
-# @click.option('--note', default=1, help='Number of greetings.')
+@cli.command()
+@click.argument("number", default=0, required=False)
+@click.option("--all", is_flag=True)
+def notes(number, all):
+
+    number, all = number, all
+    notes = {}
+    with open("notes.yaml", "r") as notefile:
+        notes = yaml.load(notefile, Loader=yaml.FullLoader)
+
+    def show():
+        if all:
+            select_all()
+        else:
+            select()
+
+    def select_all():    
+            for date, payload in notes.items():
+                print("{} - {} - {}".format(date, payload.get("length"), payload["note"]))
+    
+    def select():
+        # number reversed to get last values first
+        nonlocal number
+        number = ~int(number)
+        print(number)
+        with open("notes.yaml", "r") as notefile:
+            date, payload = list(notes.keys())[number], notes.get(list(notes.keys())[number])
+            print("{} - {} - {}".format(date, payload["length"], payload["note"]))
+
+    show()
 
 class Timer():
 
     def __init__(self, countdown):
         self.__time_start = time.time()
         self.__countdown = int(countdown)
+        self.write_note = True
 
     def note(self, note):
         writable_data = {}
@@ -51,6 +81,7 @@ class Timer():
                     sys.stdout.flush()
 
             except KeyboardInterrupt as e:
+                self.write_note = False
                 break
         
 if __name__ == "__main__":
