@@ -56,6 +56,7 @@ class Timer():
 
     def __init__(self, countdown):
         self.__time_start = time.time()
+        self.__length = int(countdown)
         self.__countdown = int(countdown)
         self.write_note = True
 
@@ -63,7 +64,7 @@ class Timer():
         writable_data = {}
         at_time = str(datetime.datetime.now().replace(second=0, microsecond=0))
         writable_data[at_time] = {} 
-        writable_data[at_time]["length"] = self.__countdown
+        writable_data[at_time]["length"] = self.__length
         writable_data[at_time]["note"] = note
         with open("notes.yaml", "a") as notefile:
             yaml.safe_dump(writable_data, notefile, encoding='utf-8', allow_unicode=True, default_flow_style=False)
