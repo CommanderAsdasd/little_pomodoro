@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 
 import time
@@ -7,70 +7,101 @@ import sys
 import click
 import yaml
 import datetime
+import ast
+import math
 
 @click.group()
 def cli():
     pass
 
+#region   countdown option
 @cli.command()
 @click.argument("time")
 @click.option("--note", default=None)
-def countdown(time, note):
+@click.option("--jobtype", default="pet")
+def countdown(time, note, jobtype):
+    if jobtype not in ["pet", "job"]:
+        print("Jobtype can only be \'pet\' or \'job\' ")
+        return
     timer = Timer(time)
+    timer.jobtype = jobtype
     timer.countdown()
-    if note and timer.write_note:
-        timer.note(note)
+    timer.make_note(note)
+#endregion
 
-@cli.command()
-@click.argument("number", default=0, required=False)
-@click.option("--all", is_flag=True)
-def notes(number, all):
+# TODO: series of timers
 
-    number, all = number, all
-    notes = {}
-    with open("notes.yaml", "r") as notefile:
-        notes = yaml.load(notefile, Loader=yaml.FullLoader)
 
-    def show():
-        if all:
-            select_all()
-        else:
-            select()
-
-    def select_all():    
-            for date, payload in notes.items():
-                print("{} - {} - {}".format(date, payload.get("length"), payload["note"]))
-    
-    def select():
-        # number reversed to get last values first
-        nonlocal number
-        number = ~int(number)
-        print(number)
-        with open("notes.yaml", "r") as notefile:
-            date, payload = list(notes.keys())[number], notes.get(list(notes.keys())[number])
-            print("{} - {} - {}".format(date, payload["length"], payload["note"]))
-
-    show()
-
+#region   Timer class
 class Timer():
+    '''states - Running, Interrupted, FInished'''
 
     def __init__(self, countdown):
         self.__time_start = time.time()
         self.__length = int(countdown)
         self.__countdown = int(countdown)
-        self.write_note = True
+        self.writable_data = {}
+        self.state = None
 
-    def note(self, note):
-        writable_data = {}
-        at_time = str(datetime.datetime.now().replace(second=0, microsecond=0))
-        writable_data[at_time] = {} 
-        writable_data[at_time]["length"] = self.__length
-        writable_data[at_time]["note"] = note
+    def submit_score(self, add):
+        try:
+            with open("score.yaml", "r") as scorefile:
+                scoretext = scorefile.read()
+                if scoretext:
+                    score = int(scoretext)
+                else:
+                    score = 0
+        except FileNotFoundError:
+            score = 0
+        with open("score.yaml", "w") as scorefile:
+            score += add
+            scorefile.write(str(score))
+        print("Current score {}".format(score))
+
+    
+    def write_file(self):
         with open("notes.yaml", "a") as notefile:
-            yaml.safe_dump(writable_data, notefile, encoding='utf-8', allow_unicode=True, default_flow_style=False)
+            yaml.safe_dump(self.writable_data, notefile, encoding='utf-8', allow_unicode=True, default_flow_style=False)
+
+
+    #region   note method
+    def make_note(self, note):
+        self.writable_data = {}
+        at_time = str(datetime.datetime.now().replace(second=0, microsecond=0))
+        self.writable_data[at_time] = {} 
+        self.writable_data[at_time]["length"] = self.__length
+        if self.state == "Finished":
+            self.writable_data[at_time]["status"] = self.state
+            self.writable_data[at_time]["note"] = note
+
+            print("\n How goals achieved from 0 to 10 ")
+            mark = int(input())
+            self.writable_data[at_time]["mark"] = mark 
+            update_score = int(math.floor(self.__length / 60) * (mark / 10))
+            if self.jobtype == "pet":
+                self.submit_score(update_score * -2)
+            if self.jobtype == "job":
+                self.submit_score(update_score)
+
+            print("\n What an outcomes from timer: ")
+            self.writable_data[at_time]["outcomes"] = input()
+            
+            self.write_file()
+
+            # TODO: add various prints to my console helper
+            print("La vida no vale nada!")
+        elif self.state == "Interrupted":
+            self.writable_data[at_time]["status"] = self.state
+
+            print("\n Cause of interruption: ")
+            self.writable_data[at_time]["cause"] = input()
+            self.write_file()
+            
+    #endregion
 
 
     def countdown(self):
+        self.state = "Running"
         while self.__countdown > 0:
             try:
                 sys.stdout.write("\r{seconds} Seconds".format(seconds=self.__countdown))
@@ -78,12 +109,16 @@ class Timer():
                 time.sleep(1)
                 self.__countdown = self.__countdown - 1
                 if self.__countdown == 0:
+                    self.state = "Finished"
                     sys.stdout.write("\n Time's up !")
                     sys.stdout.flush()
-
+                    
             except KeyboardInterrupt as e:
-                self.write_note = False
+                self.state = "Interrupted"
+                # DEBUG:
+                # self.state = "Finished"
                 break
+#endregion
         
 if __name__ == "__main__":
 
