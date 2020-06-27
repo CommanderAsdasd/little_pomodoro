@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pipenv-shebang
 
 
 import time
@@ -18,7 +18,7 @@ def cli():
 @cli.command()
 @click.argument("time")
 @click.option("--note", default=None)
-@click.option("--jobtype", default="pet")
+@click.option("--jobtype", default="job")
 def countdown(time, note, jobtype):
     if jobtype not in ["pet", "job"]:
         print("Jobtype can only be \'pet\' or \'job\' ")
@@ -43,7 +43,12 @@ class Timer():
         self.writable_data = {}
         self.state = None
 
-    def submit_score(self, add):
+    def submit_score(self, mark):
+
+        if self.jobtype == "pet":
+            update_score = int(math.floor(self.__length / 60)) * -2
+        if self.jobtype == "job":
+            update_score = int(math.floor(self.__length / 60) * (mark / 10))
         try:
             with open("score.yaml", "r") as scorefile:
                 scoretext = scorefile.read()
@@ -54,7 +59,7 @@ class Timer():
         except FileNotFoundError:
             score = 0
         with open("score.yaml", "w") as scorefile:
-            score += add
+            score += update_score
             scorefile.write(str(score))
         print("Current score {}".format(score))
 
@@ -77,11 +82,7 @@ class Timer():
             print("\n How goals achieved from 0 to 10 ")
             mark = int(input())
             self.writable_data[at_time]["mark"] = mark 
-            update_score = int(math.floor(self.__length / 60) * (mark / 10))
-            if self.jobtype == "pet":
-                self.submit_score(update_score * -2)
-            if self.jobtype == "job":
-                self.submit_score(update_score)
+            self.submit_score(mark)
 
             print("\n What an outcomes from timer: ")
             self.writable_data[at_time]["outcomes"] = input()

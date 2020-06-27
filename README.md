@@ -6,5 +6,7 @@ TODO: Make a config to define notes file
 TODO: Split MVC, classes to files
 
 # Installation:
-`pip install click`
-Or `pipenv install`
+
+`pipenv install`
+
+then `pip install pipenv-shebang` should be installed globally.
